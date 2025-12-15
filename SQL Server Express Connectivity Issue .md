@@ -1,1 +1,72 @@
-🗄️ SQL Server Express Connectivity Issue – Root Cause and Resolution📜 BackgroundInstance: SQLEXPRESS01 (SQL Server Express 2025).Error: Error 26 – Error Locating Server/Instance Specified when connecting via SSMS or sqlcmd.Observed changes:SQL Server Browser service was stopped.TCP/IP protocol was disabled, later re-enabled.IPAll settings changed from dynamic port (55425) to static port (1433).🧭 Why SQL Server Browser MattersNamed instances (like SQLEXPRESS01) don't default to port 1433. They use dynamic ports unless configured otherwise.The SQL Server Browser service listens on UDP port 1434 and tells clients which TCP port the named instance is using.If Browser is stopped and the instance uses a dynamic port, clients cannot resolve the instance $\rightarrow$ Error 26.Once Browser was restarted, SSMS could resolve SQLEXPRESS01 again.⚙️ Why TCP/IP Settings ChangedBy default, SQL Express often enables TCP/IP with a dynamic port.In this case, it was originally 55425.After re-enabling TCP/IP and setting IPAll $\rightarrow$ TCP Port = 1433, the instance now listens on a fixed port.This bypasses the need for Browser, because you can connect directly with:tcp:127.0.0.1,1433If reverted to the dynamic port (55425), it will still work only if Browser is running.🤔 Did ODBC/Python Change This?Installing or removing ODBC drivers or Python libraries does not modify SQL Server instance configuration.What likely happened:Either a system update or a manual change disabled TCP/IP or altered the port.Or, Browser was always stopped, but connections previously used Shared Memory ((local)), which doesn't require TCP/IP. Once localhost\SQLEXPRESS01 was used, it failed until Browser was enabled.✅ Will It Work With Original Port?Yes, if you:Leave TCP/IP enabled.Keep the dynamic port (55425).Ensure SQL Server Browser is running.Alternatively, using a static port (1433) is simpler because you can connect directly without Browser.📝 SummaryItemDetailsError CauseSQL Server Browser was stopped, and TCP/IP was disabled/misconfigured.Fix AppliedEnabled TCP/IP, set static port 1433, and started Browser.CoincidenceODBC/Python libraries did not change SQL Server settings; the timing was coincidental.Best PracticeKeep TCP/IP enabled.Either use a static port (1433) or ensure Browser is running if using dynamic ports.Avoid aliases unless necessary.
+# 🗄️ SQL Server Express Connectivity Issue – Root Cause and Resolution
+
+## 📜 Background
+
+* **Instance:** `SQLEXPRESS01` (SQL Server Express 2025).
+* **Error:** **Error 26 – Error Locating Server/Instance Specified** when connecting via SSMS or `sqlcmd`.
+* **Observed changes:**
+    * SQL Server Browser service was stopped.
+    * TCP/IP protocol was disabled, later re-enabled.
+    * `IPAll` settings changed from dynamic port (55425) to static port (1433).
+
+---
+
+## 🧭 Why SQL Server Browser Matters
+
+Named instances (like `SQLEXPRESS01`) don't default to port 1433. They use **dynamic ports** unless configured otherwise.
+
+* The **SQL Server Browser** service listens on **UDP port 1434** and tells clients which TCP port the named instance is using. 
+* If **Browser is stopped** and the instance uses a dynamic port, clients cannot resolve the instance $\rightarrow$ **Error 26**.
+* Once Browser was restarted, SSMS could resolve `SQLEXPRESS01` again.
+
+---
+
+## ⚙️ Why TCP/IP Settings Changed
+
+By default, SQL Express often enables TCP/IP with a dynamic port.
+
+* In this case, it was originally **55425**.
+* After re-enabling TCP/IP and setting `IPAll` $\rightarrow$ `TCP Port = 1433`, the instance now listens on a **fixed port**.
+* This **bypasses the need for Browser**, because you can connect directly with:
+    > `tcp:127.0.0.1,1433`
+* If reverted to the dynamic port (55425), it will still work **only if Browser is running**.
+
+---
+
+## 🤔 Did ODBC/Python Change This?
+
+**Installing or removing ODBC drivers or Python libraries does not modify SQL Server instance configuration.**
+
+* **What likely happened:**
+    * Either a system update or a manual change **disabled TCP/IP** or **altered the port**.
+    * Or, Browser was always stopped, but connections previously used **Shared Memory** (`(local)`), which doesn't require TCP/IP. Once `localhost\SQLEXPRESS01` was used, it failed until Browser was enabled.
+
+---
+
+## ✅ Will It Work With Original Port?
+
+Yes, if you:
+
+1.  Leave TCP/IP enabled.
+2.  Keep the dynamic port (55425).
+3.  **Ensure SQL Server Browser is running.**
+
+Alternatively, using a **static port (1433)** is simpler because you can connect directly **without Browser**.
+
+---
+
+## 📝 Summary
+
+| Item | Details |
+| :--- | :--- |
+| **Error Cause** | SQL Server Browser was stopped, and TCP/IP was disabled/misconfigured. |
+| **Fix Applied** | Enabled TCP/IP, set static port 1433, and started Browser. |
+| **Coincidence** | ODBC/Python libraries did not change SQL Server settings; the timing was coincidental. |
+
+### Best Practice
+
+* Keep **TCP/IP enabled**.
+* Either use a **static port (1433)** or ensure **Browser is running** if using dynamic ports.
+* Avoid aliases unless necessary.
+
+---
